@@ -3,30 +3,46 @@ import java.util.Calendar;
 
 
 public class CuentaAhorro extends CuentaBancaria{
-    private Calendar UltimaModif;
-    private int retiros=0;
-    private static final int MAX_RETIROS_MES=3;
-    public CuentaAhorro(int numero, String cliente) {
-        super(numero,cliente,0.03);
-        this.UltimaModif=Calendar.getInstance();
+    private Calendar ultimoUso;
+    public CuentaAhorro(int numero, String cliente, String moneda) {
+        super(numero, cliente, moneda);
+        this.tipo = TipoCuenta.AHORRO;
+        this.ultimoUso = Calendar.getInstance();
+    }
+    private boolean estaActiva() {
+        if (ultimoUso == null) return false;
         
+        Calendar limite = Calendar.getInstance();
+        limite.add(Calendar.MONTH, -6);
+        return ultimoUso.after(limite);
     }
-    public boolean status(){
-        Calendar fechaActual=Calendar.getInstance();
-        fechaActual.add(Calendar.MONTH,-6);
-        return UltimaModif.after(fechaActual);
-    }
-    public void aplicarIntereses(){
-        if(status()){
-            double interes=saldo*tasa;
-            depositar(interes);
-            Historial.add("Se ha registrado interes: +"+interes);
-            
+    @Override
+    public boolean retirar(double monto) {
+        if (!estaActiva()) {
+            throw new IllegalStateException("La cuenta esta inactiva");
         }
-    }
-    public void retiro(int monto){
-        if(status() && (retiros<MAX_RETIROS_MES)){
-            retirar(monto);
+        boolean exito = super.retirar(monto);
+        if (exito) {
+            ultimoUso = Calendar.getInstance();
         }
+        return exito;
+    }
+    @Override
+    public void depositar(double monto) {
+        if (!estaActiva()) {
+            throw new IllegalStateException("La cuenta esta inactiva");
+        }
+        super.depositar(monto);
+        ultimoUso = Calendar.getInstance();
+    }
+    @Override
+    public void quienSoy() {
+        System.out.println("Soy una Cuenta de Ahorro");
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + " | Ultimo uso: " + (ultimoUso != null ? ultimoUso.getTime() : "Sin uso");
     }
 }
+
